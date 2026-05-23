@@ -27,7 +27,7 @@ export default function Home() {
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 bg-brand-500/15 border border-brand-500/30 text-brand-500 text-sm font-semibold px-4 py-1.5 rounded-full mb-6" style={{ fontFamily: 'Syne, sans-serif' }}>
               <span className="w-2 h-2 bg-brand-500 rounded-full animate-pulse" />
-              Hyderabad's Trusted Repair Hub
+              Vijayawada's Trusted Repair Hub
             </div>
             <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold text-white leading-[1.05] mb-6" style={{ fontFamily: 'Syne, sans-serif' }}>
               Fix Fast.<br /><span className="text-brand-500">Buy Smart.</span>
