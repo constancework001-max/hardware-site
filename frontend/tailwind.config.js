@@ -1,0 +1,22 @@
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: ['./index.html', './src/**/*.{js,jsx}'],
+  theme: {
+    extend: {
+      colors: {
+        brand: {
+          50: '#fff7ed',
+          500: '#f97316',
+          600: '#ea580c',
+          700: '#c2410c',
+          900: '#7c2d12'
+        }
+      },
+      fontFamily: {
+        sans: ['Syne', 'sans-serif'],
+        body: ['DM Sans', 'sans-serif']
+      }
+    }
+  },
+  plugins: []
+}
