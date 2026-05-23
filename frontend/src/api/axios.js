@@ -5,7 +5,7 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' }
 });
 
-// Attach JWT token to every request
+// Attach JWT token
 api.interceptors.request.use(config => {
   const token = localStorage.getItem('token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
@@ -26,4 +26,3 @@ api.interceptors.response.use(
 );
 
 export default api;
-frontend/
