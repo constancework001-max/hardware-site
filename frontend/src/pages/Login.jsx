@@ -67,18 +67,66 @@ export default function Login() {
     }
   };
 
-  // ================= UI =================
-  return (
-    <div style={{ textAlign: "center", marginTop: "100px" }}>
+  const inputStyle = {
+  width: "100%",
+  padding: "10px",
+  marginBottom: "15px",
+  borderRadius: "6px",
+  border: "1px solid #333",
+  backgroundColor: "#000",
+  color: "#fff"
+};
 
-      <h2>Login</h2>
+const btnStyle = {
+  width: "100%",
+  padding: "10px",
+  backgroundColor: "#ff6a00",
+  border: "none",
+  borderRadius: "6px",
+  color: "#fff",
+  cursor: "pointer",
+  fontWeight: "bold"
+};
+
+const outlineBtn = {
+  width: "100%",
+  padding: "10px",
+  backgroundColor: "transparent",
+  border: "1px solid #ff6a00",
+  borderRadius: "6px",
+  color: "#ff6a00",
+  cursor: "pointer"
+};
+
+  // ================= UI =================
+ return (
+  <div style={{
+    minHeight: "100vh",
+    backgroundColor: "#0b0b0b",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center"
+  }}>
+
+    <div style={{
+      backgroundColor: "#111",
+      padding: "40px",
+      borderRadius: "12px",
+      width: "350px",
+      textAlign: "center",
+      boxShadow: "0 0 20px rgba(0,0,0,0.5)"
+    }}>
+
+      <h2 style={{ color: "#fff", marginBottom: "20px" }}>
+        Login
+      </h2>
 
       <input
         placeholder="Email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
+        style={inputStyle}
       />
-      <br /><br />
 
       {!showOTP && (
         <>
@@ -87,14 +135,18 @@ export default function Login() {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            style={inputStyle}
           />
-          <br /><br />
 
-          <button onClick={handleLogin}>Login</button>
+          <button style={btnStyle} onClick={handleLogin}>
+            Login
+          </button>
 
-          <br /><br />
+          <p style={{ color: "#aaa", margin: "10px 0" }}>
+            OR
+          </p>
 
-          <button onClick={sendOtp}>
+          <button style={outlineBtn} onClick={sendOtp}>
             Login with OTP
           </button>
         </>
@@ -102,9 +154,13 @@ export default function Login() {
 
       {showOTP && (
         <>
-          <h3>Enter OTP</h3>
+          <p style={{ color: "#aaa" }}>Enter OTP</p>
 
-          <div style={{ display: "flex", justifyContent: "center", gap: "10px" }}>
+          <div style={{
+            display: "flex",
+            justifyContent: "space-between",
+            marginBottom: "15px"
+          }}>
             {otp.map((digit, index) => (
               <input
                 key={index}
@@ -114,18 +170,24 @@ export default function Login() {
                 maxLength="1"
                 style={{
                   width: "40px",
-                  height: "40px",
-                  textAlign: "center"
+                  height: "45px",
+                  textAlign: "center",
+                  fontSize: "18px",
+                  borderRadius: "6px",
+                  border: "1px solid #333",
+                  backgroundColor: "#000",
+                  color: "#fff"
                 }}
               />
             ))}
           </div>
 
-          <br />
-
-          <button onClick={verifyOtp}>Verify OTP</button>
+          <button style={btnStyle} onClick={verifyOtp}>
+            Verify OTP
+          </button>
         </>
       )}
     </div>
-  );
+  </div>
+);
 }
