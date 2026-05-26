@@ -4,7 +4,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { pool } = require('../db');
 const { authMiddleware } = require('../middleware/auth');
-const { sendLoginEmail } = require('../utils/email');
+const { sendLoginEmail, sendOTPEmail } = require('../utils/email');
 
 // ================= REGISTER =================
 router.post('/register', async (req, res) => {
@@ -17,7 +17,6 @@ router.post('/register', async (req, res) => {
   }
 
   try {
-    // Check existing user
     const existing = await pool.query(
       'SELECT id FROM users WHERE email = $1',
       [email]
@@ -29,10 +28,8 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    // Hash password
     const hash = await bcrypt.hash(password, 12);
 
-    // Insert user
     const result = await pool.query(
       `INSERT INTO users (name, email, password, phone)
        VALUES ($1, $2, $3, $4)
@@ -42,7 +39,6 @@ router.post('/register', async (req, res) => {
 
     const user = result.rows[0];
 
-    // Create token
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role },
       process.env.JWT_SECRET,
@@ -71,7 +67,6 @@ router.post('/login', async (req, res) => {
   }
 
   try {
-    // Find user
     const result = await pool.query(
       'SELECT * FROM users WHERE email = $1',
       [email]
@@ -85,7 +80,6 @@ router.post('/login', async (req, res) => {
 
     const user = result.rows[0];
 
-    // Compare password
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
@@ -94,7 +88,6 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Create token
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role },
       process.env.JWT_SECRET,
@@ -105,18 +98,102 @@ router.post('/login', async (req, res) => {
 
     console.log("✅ User logged in:", user.email);
 
-    // ================= EMAIL SEND (NON-BLOCKING) =================
+    // ✅ EMAIL AFTER LOGIN
     sendLoginEmail(user.email, user.name)
-      .then(() => console.log("📩 Email sent to:", user.email))
+      .then(() => console.log("📩 Login email sent"))
       .catch(err => console.error("❌ Email failed:", err.message));
-
-    // ============================================================
 
     res.json({ token, user: safeUser });
 
   } catch (err) {
     console.error("❌ Login error:", err.message);
     res.status(500).json({ message: 'Server error.' });
+  }
+});
+
+
+// ================= SEND OTP =================
+router.post('/send-otp', async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expires = new Date(Date.now() + 5 * 60 * 1000);
+
+    await pool.query(
+      'INSERT INTO otps (email, otp, expires_at) VALUES ($1, $2, $3)',
+      [email, otp, expires]
+    );
+
+    await sendOTPEmail(email, otp);
+
+    console.log("📩 OTP sent:", email, otp);
+
+    res.json({ message: "OTP sent" });
+
+  } catch (err) {
+    console.error("❌ Send OTP error:", err.message);
+    res.status(500).json({ message: "Failed to send OTP" });
+  }
+});
+
+
+// ================= VERIFY OTP =================
+router.post('/verify-otp', async (req, res) => {
+  const { email, otp } = req.body;
+
+  try {
+    const result = await pool.query(
+      'SELECT * FROM otps WHERE email=$1 AND otp=$2 ORDER BY id DESC LIMIT 1',
+      [email, otp]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(400).json({ message: "Invalid OTP" });
+    }
+
+    const record = result.rows[0];
+
+    if (new Date() > new Date(record.expires_at)) {
+      return res.status(400).json({ message: "OTP expired" });
+    }
+
+    // ✅ Check user
+    let userRes = await pool.query(
+      'SELECT * FROM users WHERE email=$1',
+      [email]
+    );
+
+    let user;
+
+    if (userRes.rows.length === 0) {
+      const newUser = await pool.query(
+        'INSERT INTO users (email, name) VALUES ($1,$2) RETURNING *',
+        [email, "User"]
+      );
+      user = newUser.rows[0];
+    } else {
+      user = userRes.rows[0];
+    }
+
+    const token = jwt.sign(
+      { id: user.id, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    console.log("✅ OTP login success:", email);
+
+    // ✅ SEND WELCOME EMAIL
+    sendLoginEmail(user.email, user.name)
+      .then(() => console.log("📩 Welcome email sent"))
+      .catch(err => console.error("❌ Email failed:", err.message));
+
+    res.json({ token, user });
+
+  } catch (err) {
+    console.error("❌ OTP verify error:", err.message);
+    res.status(500).json({ message: "OTP verification failed" });
   }
 });
 

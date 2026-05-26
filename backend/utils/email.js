@@ -8,17 +8,32 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-const sendLoginEmail = async (to, name) => {
-  await transporter.sendMail({
+// ✅ OTP EMAIL
+const sendOTPEmail = async (to, otp) => {
+  return transporter.sendMail({
     from: `"TechFixPro" <${process.env.EMAIL_USER}>`,
     to,
-    subject: "Login Successful",
+    subject: "Your OTP Code",
     html: `
-      <h2>Hello ${name},</h2>
-      <p>Thanks for logging in to TechFixPro.</p>
-      <p>We're happy to have you back! 🚀</p>
+      <h2>Your OTP Code</h2>
+      <p>Your OTP is: <b>${otp}</b></p>
+      <p>This expires in 5 minutes.</p>
     `
   });
 };
 
-module.exports = { sendLoginEmail };
+// ✅ LOGIN SUCCESS EMAIL
+const sendLoginEmail = async (to, name) => {
+  return transporter.sendMail({
+    from: `"TechFixPro" <${process.env.EMAIL_USER}>`,
+    to,
+    subject: "Welcome to TechFixPro 🚀",
+    html: `
+      <h2>Hello ${name},</h2>
+      <p>You have successfully logged in.</p>
+      <p>Enjoy our services!</p>
+    `
+  });
+};
+
+module.exports = { sendOTPEmail, sendLoginEmail };
