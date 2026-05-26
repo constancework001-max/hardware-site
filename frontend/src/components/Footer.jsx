@@ -13,7 +13,7 @@ export default function Footer() {
               <span className="font-bold text-white" style={{ fontFamily: 'Syne, sans-serif' }}>TechFix<span className="text-brand-500">Pro</span></span>
             </div>
             <p className="text-white/40 text-sm leading-relaxed max-w-xs">
-              Hyderabad's trusted hardware repair shop. Genuine parts, expert repairs, and real warranties.
+              Vijayawada's trusted hardware repair shop. Genuine parts, expert repairs, and real warranties.
             </p>
           </div>
           <div>
@@ -35,7 +35,7 @@ export default function Footer() {
         </div>
         <div className="border-t border-white/10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-white/30 text-xs">
           <p>© 2025 TechFix Pro. All rights reserved.</p>
-          <p>📍 Hyderabad, Telangana · 📞 +91 98765 43210</p>
+          <p>📍 Vijayawada, Andhra Pradesh · 📞 +91 98765 43210</p>
         </div>
       </div>
     </footer>
