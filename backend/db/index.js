@@ -12,8 +12,10 @@ const initDB = async () => {
     await pool.query('SELECT NOW()');
     console.log("✅ Database initialized successfully");
   } catch (err) {
-    console.error("❌ Failed to initialize database:", err.message);
-    process.exit(1);
+    console.error("❌ Database connection failed:", err.message);
+
+    // ❗ DO NOT crash app (important for Render)
+    console.log("⚠️ Server will still start, retrying later...");
   }
 };
 
