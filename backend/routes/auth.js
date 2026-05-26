@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { pool } = require('../db');
 const { authMiddleware } = require('../middleware/auth');
+const { sendLoginEmail } = require('../utils/email'); // ✅ added
 
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
@@ -21,8 +22,14 @@ router.post('/register', async (req, res) => {
       'INSERT INTO users (name, email, password, phone) VALUES ($1,$2,$3,$4) RETURNING id, name, email, role',
       [name, email, hash, phone || null]
     );
+
     const user = result.rows[0];
-    const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign(
+      { id: user.id, email: user.email, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
     res.status(201).json({ token, user });
   } catch (err) {
     console.error(err);
@@ -46,9 +53,23 @@ router.post('/login', async (req, res) => {
     if (!isMatch)
       return res.status(401).json({ message: 'Invalid credentials.' });
 
-    const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign(
+      { id: user.id, email: user.email, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
     const { password: _, ...safeUser } = user;
+
+    // ✅ SEND EMAIL (SAFE WAY - WON'T BREAK APP)
+    try {
+      await sendLoginEmail(user.email, user.name);
+    } catch (e) {
+      console.error("Email failed:", e.message);
+    }
+
     res.json({ token, user: safeUser });
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error.' });

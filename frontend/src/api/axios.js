@@ -1,13 +1,13 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: "https://hardware-backend-oifg.onrender.com/api",
+  baseURL: "https://hardware-backend-oifg.onrender.com/api", // ✅ PRODUCTION BACKEND
   headers: {
     'Content-Type': 'application/json'
   }
 });
 
-// Attach JWT token
+// Attach token
 api.interceptors.request.use(config => {
   const token = localStorage.getItem('token');
   if (token) {
@@ -16,16 +16,11 @@ api.interceptors.request.use(config => {
   return config;
 });
 
-// Handle 401 globally
+// Error logging (important for debugging)
 api.interceptors.response.use(
   res => res,
   err => {
-    console.error("API ERROR:", err.response?.data || err.message); // 👈 IMPORTANT
-    if (err.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
-    }
+    console.error("API ERROR:", err.response?.data || err.message);
     return Promise.reject(err);
   }
 );
