@@ -33,11 +33,15 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 
-// Initialize DB then start server
-// initDB().then(() => {
-//   app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));
-// }).catch(err => {
-//   console.error('Failed to initialize database:', err);
-//   process.exit(1);
-// });
-app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));
+// ✅ IMPORTANT: Initialize DB BEFORE starting server
+initDB()
+  .then(() => {
+    console.log('✅ Database initialized');
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on http://localhost:${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error('❌ Failed to initialize database:', err);
+    process.exit(1);
+  });
