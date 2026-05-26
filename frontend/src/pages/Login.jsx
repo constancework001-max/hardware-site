@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import api from "../api/axios";
-
+console.log("OTP VERSION 2");
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
