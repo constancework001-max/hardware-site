@@ -1,55 +1,131 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import toast from 'react-hot-toast';
+import { useState, useRef } from "react";
+import api from "../api/axios";
 
 export default function Login() {
-  const { login } = useAuth();
-  const navigate = useNavigate();
-  const [form, setForm] = useState({ email: '', password: '' });
-  const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+  const [showOTP, setShowOTP] = useState(false);
+  const [otp, setOtp] = useState(new Array(6).fill(""));
+
+  const inputsRef = useRef([]);
+
+  // ================= NORMAL LOGIN =================
+  const handleLogin = async () => {
     try {
-      await login(form.email, form.password);
-      toast.success('Welcome back!');
-      navigate('/dashboard');
+      const res = await api.post("/auth/login", { email, password });
+
+      localStorage.setItem("token", res.data.token);
+      localStorage.setItem("user", JSON.stringify(res.data.user));
+
+      window.location.href = "/dashboard";
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Login failed.');
-    } finally {
-      setLoading(false);
+      alert("Login failed");
     }
   };
 
+  // ================= SEND OTP =================
+  const sendOtp = async () => {
+    try {
+      await api.post("/auth/send-otp", { email });
+      alert("OTP sent to your email");
+      setShowOTP(true);
+    } catch {
+      alert("Failed to send OTP");
+    }
+  };
+
+  // ================= VERIFY OTP =================
+  const verifyOtp = async () => {
+    try {
+      const finalOtp = otp.join("");
+
+      const res = await api.post("/auth/verify-otp", {
+        email,
+        otp: finalOtp
+      });
+
+      localStorage.setItem("token", res.data.token);
+      localStorage.setItem("user", JSON.stringify(res.data.user));
+
+      window.location.href = "/dashboard";
+    } catch {
+      alert("Invalid OTP");
+    }
+  };
+
+  // ================= OTP INPUT =================
+  const handleOtpChange = (value, index) => {
+    if (!/^[0-9]?$/.test(value)) return;
+
+    const newOtp = [...otp];
+    newOtp[index] = value;
+    setOtp(newOtp);
+
+    if (value && index < 5) {
+      inputsRef.current[index + 1].focus();
+    }
+  };
+
+  // ================= UI =================
   return (
-    <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-4 py-16">
-      <div className="w-full max-w-md fade-up">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Welcome back</h1>
-          <p className="text-white/50">Sign in to your TechFix Pro account</p>
-        </div>
-        <form onSubmit={handleSubmit} className="card p-8 space-y-5">
-          <div>
-            <label className="label">Email address</label>
-            <input type="email" className="input" placeholder="you@example.com" value={form.email}
-              onChange={e => setForm(p => ({ ...p, email: e.target.value }))} required />
-          </div>
-          <div>
-            <label className="label">Password</label>
-            <input type="password" className="input" placeholder="••••••••" value={form.password}
-              onChange={e => setForm(p => ({ ...p, password: e.target.value }))} required />
-          </div>
-          <button type="submit" className="btn-primary w-full py-3.5" disabled={loading}>
-            {loading ? 'Signing in…' : 'Sign In'}
+    <div style={{ textAlign: "center", marginTop: "100px" }}>
+
+      <h2>Login</h2>
+
+      <input
+        placeholder="Email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+      />
+      <br /><br />
+
+      {!showOTP && (
+        <>
+          <input
+            placeholder="Password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <br /><br />
+
+          <button onClick={handleLogin}>Login</button>
+
+          <br /><br />
+
+          <button onClick={sendOtp}>
+            Login with OTP
           </button>
-          <p className="text-center text-white/50 text-sm">
-            Don't have an account?{' '}
-            <Link to="/register" className="text-brand-500 hover:text-brand-400 font-medium">Sign up</Link>
-          </p>
-        </form>
-      </div>
+        </>
+      )}
+
+      {showOTP && (
+        <>
+          <h3>Enter OTP</h3>
+
+          <div style={{ display: "flex", justifyContent: "center", gap: "10px" }}>
+            {otp.map((digit, index) => (
+              <input
+                key={index}
+                ref={(el) => (inputsRef.current[index] = el)}
+                value={digit}
+                onChange={(e) => handleOtpChange(e.target.value, index)}
+                maxLength="1"
+                style={{
+                  width: "40px",
+                  height: "40px",
+                  textAlign: "center"
+                }}
+              />
+            ))}
+          </div>
+
+          <br />
+
+          <button onClick={verifyOtp}>Verify OTP</button>
+        </>
+      )}
     </div>
   );
 }
