@@ -88,15 +88,23 @@ export default function Login() {
       </div>
 
       {/* CARD */}
-      <div className="w-full max-w-md bg-gradient-to-b from-[#111] to-[#0a0a0a] p-8 rounded-2xl shadow-2xl border border-gray-800 animate-card">
-
+      <div className="w-full max-w-md p-8 rounded-2xl 
+bg-[#0f0f0f]/80 backdrop-blur-xl
+border border-gray-800 
+shadow-[0_0_40px_rgba(255,255,255,0.03)]
+animate-card">
         {/* EMAIL */}
         <input
           type="email"
           placeholder="Email address"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full mb-4 p-4 rounded-xl bg-[#0f0f0f] border border-gray-800 focus:border-orange-500 outline-none transition"
+         className="w-full mb-5 p-4 rounded-xl 
+bg-[#141414] 
+border border-gray-700 
+focus:border-orange-500 
+focus:ring-1 focus:ring-orange-500 
+outline-none transition duration-300"
         />
 
         {/* PASSWORD */}
@@ -105,11 +113,16 @@ export default function Login() {
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full mb-4 p-4 rounded-xl bg-[#0f0f0f] border border-gray-800 focus:border-orange-500 outline-none transition"
+          className="w-full mb-5 p-4 rounded-xl 
+bg-[#141414] 
+border border-gray-700 
+focus:border-orange-500 
+focus:ring-1 focus:ring-orange-500 
+outline-none transition duration-300"
         />
 
         {/* OTP */}
-        <div className="flex justify-between mb-4">
+        <div className="flex justify-between mb-5">
           {otp.map((digit, index) => (
             <input
               key={index}
@@ -117,7 +130,13 @@ export default function Login() {
               value={digit}
               onChange={(e) => handleOtpChange(e.target.value, index)}
               maxLength="1"
-              className="w-12 h-14 text-center text-lg bg-[#0f0f0f] border border-gray-800 rounded-lg focus:border-orange-500 outline-none transition"
+             className="w-12 h-14 text-center text-lg 
+bg-[#141414] 
+border border-gray-700 
+rounded-xl 
+focus:border-orange-500 
+focus:ring-1 focus:ring-orange-500 
+outline-none transition"
             />
           ))}
         </div>
@@ -133,7 +152,10 @@ export default function Login() {
         {/* LOGIN */}
         <button
           onClick={handleLogin}
-          className="w-full bg-gradient-to-r from-orange-500 to-orange-600 py-3 rounded-xl font-semibold hover:opacity-90 transition duration-300 shadow-lg"
+          className="w-full bg-gradient-to-r from-orange-500 to-orange-600 
+py-3 rounded-xl font-semibold 
+hover:scale-[1.02] hover:shadow-lg 
+transition duration-300"
         >
           Login
         </button>
