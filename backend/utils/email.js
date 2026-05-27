@@ -1,8 +1,10 @@
 const nodemailer = require("nodemailer");
 
-// CREATE TRANSPORT
+// ✅ FIXED TRANSPORT (IMPORTANT)
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true, // MUST be true
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS
@@ -14,7 +16,7 @@ const sendOTPEmail = async (to, otp) => {
   try {
     console.log("📨 Sending OTP to:", to);
 
-    await transporter.sendMail({
+    const info = await transporter.sendMail({
       from: `"TechFix Pro" <${process.env.EMAIL_USER}>`,
       to,
       subject: "Your OTP Code",
@@ -26,7 +28,7 @@ const sendOTPEmail = async (to, otp) => {
       `
     });
 
-    console.log("✅ OTP Email sent successfully");
+    console.log("✅ OTP Email sent:", info.response);
 
   } catch (err) {
     console.error("❌ FULL EMAIL ERROR:", err);
