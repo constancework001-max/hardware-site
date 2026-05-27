@@ -1,5 +1,6 @@
 const nodemailer = require("nodemailer");
 
+// CREATE TRANSPORT
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
@@ -8,21 +9,29 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-// ================= SEND OTP EMAIL =================
+// SEND OTP EMAIL
 const sendOTPEmail = async (to, otp) => {
-  await transporter.sendMail({
-    from: `"TechFix Pro" <${process.env.EMAIL_USER}>`,
-    to,
-    subject: "Your OTP Code - TechFix Pro",
-    html: `
-      <div style="font-family: Arial; text-align:center;">
-        <h2>TechFix Pro Login OTP</h2>
-        <p>Your OTP code is:</p>
-        <h1 style="color:#f97316;">${otp}</h1>
-        <p>This OTP is valid for 5 minutes.</p>
-      </div>
-    `
-  });
+  try {
+    console.log("📨 Sending OTP to:", to);
+
+    await transporter.sendMail({
+      from: `"TechFix Pro" <${process.env.EMAIL_USER}>`,
+      to,
+      subject: "Your OTP Code",
+      html: `
+        <h2>TechFix Pro Login</h2>
+        <p>Your OTP is:</p>
+        <h1>${otp}</h1>
+        <p>This OTP will expire in 5 minutes.</p>
+      `
+    });
+
+    console.log("✅ OTP Email sent successfully");
+
+  } catch (err) {
+    console.error("❌ FULL EMAIL ERROR:", err);
+    throw err;
+  }
 };
 
 module.exports = { sendOTPEmail };

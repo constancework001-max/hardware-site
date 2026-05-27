@@ -56,29 +56,24 @@ router.post('/register', async (req, res) => {
 router.post('/send-otp', async (req, res) => {
   const { email } = req.body;
 
-  if (!email) return res.status(400).json({ message: "Email required" });
-
   try {
+    if (!email) {
+      return res.status(400).json({ message: "Email required" });
+    }
+
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    otpStore[email] = {
-      otp,
-      expires: Date.now() + 5 * 60 * 1000
-    };
+    console.log("🔐 OTP:", otp);
 
     await sendOTPEmail(email, otp);
 
-    console.log("📩 OTP:", otp);
-
-    res.json({ message: "OTP sent" });
+    res.json({ message: "OTP sent successfully" });
 
   } catch (err) {
-    console.error(err);
+    console.error("❌ SEND OTP ERROR:", err.message);
     res.status(500).json({ message: "Failed to send OTP" });
   }
 });
-
-
 // ================= LOGIN =================
 router.post('/login', async (req, res) => {
   const { email, password, otp } = req.body;
