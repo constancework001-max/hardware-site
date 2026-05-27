@@ -9,25 +9,42 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState(new Array(6).fill(''));
+  const [loading, setLoading] = useState(false);
 
   const inputsRef = useRef([]);
 
   // ================= SEND OTP =================
   const handleSendOTP = async () => {
+    if (!email) {
+      toast.error("Enter email first");
+      return;
+    }
+
     try {
+      setLoading(true);
       await api.post('/auth/send-otp', { email });
-      toast.success("OTP sent to your email");
+      toast.success("OTP sent to your email 📩");
     } catch (err) {
-      toast.error("Failed to send OTP");
+      toast.error(err.response?.data?.message || "Failed to send OTP");
+    } finally {
+      setLoading(false);
     }
   };
 
   // ================= LOGIN =================
   const handleLogin = async (e) => {
     e.preventDefault();
+
     const otpCode = otp.join('');
 
+    if (otpCode.length !== 6) {
+      toast.error("Enter complete OTP");
+      return;
+    }
+
     try {
+      setLoading(true);
+
       const res = await api.post('/auth/login', {
         email,
         password,
@@ -37,11 +54,13 @@ export default function Login() {
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("user", JSON.stringify(res.data.user));
 
-      toast.success("Login successful");
+      toast.success("Login successful 🎉");
       navigate('/dashboard');
 
     } catch (err) {
-      toast.error("Login failed");
+      toast.error(err.response?.data?.message || "Login failed");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -53,8 +72,16 @@ export default function Login() {
     newOtp[index] = value;
     setOtp(newOtp);
 
+    // move forward
     if (value && index < 5) {
       inputsRef.current[index + 1].focus();
+    }
+  };
+
+  // handle backspace
+  const handleKeyDown = (e, index) => {
+    if (e.key === "Backspace" && !otp[index] && index > 0) {
+      inputsRef.current[index - 1].focus();
     }
   };
 
@@ -109,6 +136,7 @@ export default function Login() {
                   maxLength="1"
                   value={digit}
                   onChange={(e) => handleOTPChange(e.target.value, index)}
+                  onKeyDown={(e) => handleKeyDown(e, index)}
                   className="w-12 h-14 text-center text-lg input"
                 />
               ))}
@@ -119,17 +147,19 @@ export default function Login() {
           <button
             type="button"
             onClick={handleSendOTP}
+            disabled={loading}
             className="btn-secondary w-full py-3"
           >
-            Send OTP
+            {loading ? "Sending..." : "Send OTP"}
           </button>
 
           {/* LOGIN */}
           <button
             type="submit"
+            disabled={loading}
             className="btn-primary w-full py-3.5"
           >
-            Login
+            {loading ? "Logging in..." : "Login"}
           </button>
 
           {/* FOOTER */}

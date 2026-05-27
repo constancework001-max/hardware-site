@@ -4,34 +4,32 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { pool } = require('../db');
 const { authMiddleware } = require('../middleware/auth');
-const { sendLoginEmail, sendOTPEmail } = require('../utils/email');
+const { sendOTPEmail } = require('../utils/email');
 
-let otpStore = {}; // memory store
+// TEMP OTP STORE (in-memory)
+global.otpStore = global.otpStore || {};
 
 // ================= REGISTER =================
 router.post('/register', async (req, res) => {
   const { name, email, password, phone } = req.body;
 
   if (!name || !email || !password) {
-    return res.status(400).json({ message: 'All fields required' });
+    return res.status(400).json({ message: 'Name, email, and password are required.' });
   }
 
   try {
-    const existing = await pool.query(
-      'SELECT id FROM users WHERE email=$1',
-      [email]
-    );
+    const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
 
     if (existing.rows.length > 0) {
-      return res.status(409).json({ message: 'Email already exists' });
+      return res.status(409).json({ message: 'Email already registered.' });
     }
 
     const hash = await bcrypt.hash(password, 12);
 
     const result = await pool.query(
-      `INSERT INTO users (name,email,password,phone)
-       VALUES ($1,$2,$3,$4)
-       RETURNING id,name,email,role`,
+      `INSERT INTO users (name, email, password, phone)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id, name, email, role`,
       [name, email, hash, phone || null]
     );
 
@@ -46,8 +44,8 @@ router.post('/register', async (req, res) => {
     res.status(201).json({ token, user });
 
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error' });
+    console.error("❌ Register error:", err.message);
+    res.status(500).json({ message: 'Server error.' });
   }
 });
 
@@ -65,54 +63,72 @@ router.post('/send-otp', async (req, res) => {
 
     console.log("🔐 OTP:", otp);
 
+    // STORE OTP
+    global.otpStore[email] = {
+      otp,
+      expires: Date.now() + 5 * 60 * 1000 // 5 mins
+    };
+
     await sendOTPEmail(email, otp);
 
     res.json({ message: "OTP sent successfully" });
 
   } catch (err) {
-    console.error("❌ SEND OTP ERROR:", err.message);
+    console.error("❌ SEND OTP ERROR:", err);
     res.status(500).json({ message: "Failed to send OTP" });
   }
 });
-// ================= LOGIN =================
+
+
+// ================= LOGIN WITH OTP =================
 router.post('/login', async (req, res) => {
   const { email, password, otp } = req.body;
 
-  if (!email) {
-    return res.status(400).json({ message: "Email required" });
+  if (!email || !password || !otp) {
+    return res.status(400).json({
+      message: 'Email, password and OTP are required.'
+    });
   }
 
   try {
+    // CHECK USER
     const result = await pool.query(
-      'SELECT * FROM users WHERE email=$1',
+      'SELECT * FROM users WHERE email = $1',
       [email]
     );
 
     if (result.rows.length === 0) {
-      return res.status(401).json({ message: "User not found" });
+      return res.status(401).json({ message: 'Invalid credentials.' });
     }
 
     const user = result.rows[0];
 
-    // PASSWORD CHECK
-    if (password) {
-      const isMatch = await bcrypt.compare(password, user.password);
-      if (!isMatch) {
-        return res.status(401).json({ message: "Invalid password" });
-      }
+    // CHECK PASSWORD
+    const isMatch = await bcrypt.compare(password, user.password);
+
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Invalid credentials.' });
     }
 
-    // OTP CHECK
-    if (!otpStore[email] || otpStore[email].otp !== otp) {
-      return res.status(401).json({ message: "Invalid OTP" });
+    // CHECK OTP
+    const record = global.otpStore[email];
+
+    if (!record) {
+      return res.status(400).json({ message: "OTP not requested" });
     }
 
-    if (otpStore[email].expires < Date.now()) {
-      return res.status(401).json({ message: "OTP expired" });
+    if (record.otp !== otp) {
+      return res.status(400).json({ message: "Invalid OTP" });
     }
 
-    delete otpStore[email];
+    if (Date.now() > record.expires) {
+      return res.status(400).json({ message: "OTP expired" });
+    }
 
+    // DELETE OTP AFTER USE
+    delete global.otpStore[email];
+
+    // CREATE TOKEN
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role },
       process.env.JWT_SECRET,
@@ -121,26 +137,56 @@ router.post('/login', async (req, res) => {
 
     const { password: _, ...safeUser } = user;
 
-    // Send login email (non-blocking)
-    sendLoginEmail(user.email, user.name).catch(() => {});
-
     res.json({ token, user: safeUser });
 
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
+    console.error("❌ Login error:", err.message);
+    res.status(500).json({ message: 'Server error.' });
   }
 });
 
 
 // ================= PROFILE =================
 router.get('/profile', authMiddleware, async (req, res) => {
-  const result = await pool.query(
-    'SELECT id,name,email FROM users WHERE id=$1',
-    [req.user.id]
-  );
+  try {
+    const result = await pool.query(
+      `SELECT id, name, email, phone, address, role, created_at 
+       FROM users WHERE id = $1`,
+      [req.user.id]
+    );
 
-  res.json(result.rows[0]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    res.json(result.rows[0]);
+
+  } catch (err) {
+    console.error("❌ Profile error:", err.message);
+    res.status(500).json({ message: 'Server error.' });
+  }
+});
+
+
+// ================= UPDATE PROFILE =================
+router.put('/profile', authMiddleware, async (req, res) => {
+  const { name, phone, address } = req.body;
+
+  try {
+    const result = await pool.query(
+      `UPDATE users 
+       SET name = $1, phone = $2, address = $3 
+       WHERE id = $4 
+       RETURNING id, name, email, phone, address, role`,
+      [name, phone, address, req.user.id]
+    );
+
+    res.json(result.rows[0]);
+
+  } catch (err) {
+    console.error("❌ Update profile error:", err.message);
+    res.status(500).json({ message: 'Server error.' });
+  }
 });
 
 module.exports = router;
