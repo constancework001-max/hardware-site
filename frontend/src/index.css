@@ -102,3 +102,20 @@
 .animate-card {
   animation: cardOpen 0.4s ease-in-out;
 }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes cardOpen {
+  from { opacity: 0; transform: scale(0.95) translateY(20px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+.animate-card {
+  animation: cardOpen 0.4s ease-in-out;
+}
