@@ -1,19 +1,20 @@
 const nodemailer = require("nodemailer");
 
-// ✅ USE PORT 587 (IMPORTANT FIX)
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
   port: 587,
-  secure: false, // MUST be false for 587
+  secure: false,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS
   },
   tls: {
     rejectUnauthorized: false
-  }
+  },
+  connectionTimeout: 10000, // ✅ ADD THIS
+  greetingTimeout: 10000,
+  socketTimeout: 10000
 });
-
 const sendOTPEmail = async (to, otp) => {
   try {
     console.log("📨 Sending OTP to:", to);

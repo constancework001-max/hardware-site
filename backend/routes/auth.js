@@ -6,78 +6,44 @@ const { pool } = require('../db');
 const { authMiddleware } = require('../middleware/auth');
 const { sendOTPEmail } = require('../utils/email');
 
-// TEMP OTP STORE (in-memory)
-global.otpStore = global.otpStore || {};
-
-// ================= REGISTER =================
-router.post('/register', async (req, res) => {
-  const { name, email, password, phone } = req.body;
-
-  if (!name || !email || !password) {
-    return res.status(400).json({ message: 'Name, email, and password are required.' });
-  }
-
-  try {
-    const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
-
-    if (existing.rows.length > 0) {
-      return res.status(409).json({ message: 'Email already registered.' });
-    }
-
-    const hash = await bcrypt.hash(password, 12);
-
-    const result = await pool.query(
-      `INSERT INTO users (name, email, password, phone)
-       VALUES ($1, $2, $3, $4)
-       RETURNING id, name, email, role`,
-      [name, email, hash, phone || null]
-    );
-
-    const user = result.rows[0];
-
-    const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' }
-    );
-
-    res.status(201).json({ token, user });
-
-  } catch (err) {
-    console.error("❌ Register error:", err.message);
-    res.status(500).json({ message: 'Server error.' });
-  }
-});
-
+// ================= OTP STORE (TEMP MEMORY) =================
+const otpStore = {}; // { email: { otp, expires } }
 
 // ================= SEND OTP =================
 router.post('/send-otp', async (req, res) => {
   const { email } = req.body;
 
-  try {
-    if (!email) {
-      return res.status(400).json({ message: "Email required" });
-    }
+  if (!email) {
+    return res.status(400).json({ message: 'Email is required.' });
+  }
 
+  try {
+    // 🔐 Generate OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
     console.log("🔐 OTP:", otp);
 
-    // STORE OTP
-    global.otpStore[email] = {
+    // ⏳ Save OTP with expiry (5 mins)
+    otpStore[email] = {
       otp,
-      expires: Date.now() + 5 * 60 * 1000 // 5 mins
+      expires: Date.now() + 5 * 60 * 1000
     };
 
-    sendOTPEmail(email, otp)
-  .then(() => console.log("📩 OTP sent"))
-  .catch(err => console.error("❌ Email error:", err.message));
+    // ⏱️ Delay to avoid Gmail blocking
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
-res.json({ message: "OTP sent successfully" });
+    console.log("📨 Sending OTP to:", email);
+
+    // 📩 Send Email
+    await sendOTPEmail(email, otp);
+
+    console.log("✅ OTP email sent successfully");
+
+    res.json({ message: 'OTP sent successfully' });
 
   } catch (err) {
-    console.error("❌ SEND OTP ERROR:", err);
-    res.status(500).json({ message: "Failed to send OTP" });
+    console.error("❌ OTP SEND ERROR:", err.message);
+    res.status(500).json({ message: 'Failed to send OTP' });
   }
 });
 
@@ -93,7 +59,7 @@ router.post('/login', async (req, res) => {
   }
 
   try {
-    // CHECK USER
+    // 🔍 Check user
     const result = await pool.query(
       'SELECT * FROM users WHERE email = $1',
       [email]
@@ -105,32 +71,31 @@ router.post('/login', async (req, res) => {
 
     const user = result.rows[0];
 
-    // CHECK PASSWORD
+    // 🔐 Check password
     const isMatch = await bcrypt.compare(password, user.password);
-
     if (!isMatch) {
       return res.status(401).json({ message: 'Invalid credentials.' });
     }
 
-    // CHECK OTP
-    const record = global.otpStore[email];
+    // 🔐 Check OTP
+    const storedOTP = otpStore[email];
 
-    if (!record) {
-      return res.status(400).json({ message: "OTP not requested" });
+    if (!storedOTP) {
+      return res.status(400).json({ message: 'OTP not requested.' });
     }
 
-    if (record.otp !== otp) {
-      return res.status(400).json({ message: "Invalid OTP" });
+    if (storedOTP.expires < Date.now()) {
+      return res.status(400).json({ message: 'OTP expired.' });
     }
 
-    if (Date.now() > record.expires) {
-      return res.status(400).json({ message: "OTP expired" });
+    if (storedOTP.otp !== otp) {
+      return res.status(400).json({ message: 'Invalid OTP.' });
     }
 
-    // DELETE OTP AFTER USE
-    delete global.otpStore[email];
+    // 🧹 Clear OTP after use
+    delete otpStore[email];
 
-    // CREATE TOKEN
+    // 🎟️ Generate token
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role },
       process.env.JWT_SECRET,
@@ -139,10 +104,12 @@ router.post('/login', async (req, res) => {
 
     const { password: _, ...safeUser } = user;
 
+    console.log("✅ Login successful:", user.email);
+
     res.json({ token, user: safeUser });
 
   } catch (err) {
-    console.error("❌ Login error:", err.message);
+    console.error("❌ LOGIN ERROR:", err.message);
     res.status(500).json({ message: 'Server error.' });
   }
 });
@@ -177,8 +144,8 @@ router.put('/profile', authMiddleware, async (req, res) => {
   try {
     const result = await pool.query(
       `UPDATE users 
-       SET name = $1, phone = $2, address = $3 
-       WHERE id = $4 
+       SET name=$1, phone=$2, address=$3 
+       WHERE id=$4 
        RETURNING id, name, email, phone, address, role`,
       [name, phone, address, req.user.id]
     );
