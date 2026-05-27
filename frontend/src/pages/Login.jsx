@@ -69,64 +69,81 @@ export default function Login() {
     }
   };
 
-  return (
-    <div style={container}>
+ return (
+  <div className="min-h-screen flex items-center justify-center bg-black text-white">
 
-      {/* TOAST */}
-      {toast && (
-        <div style={toastStyle}>
-          {toast}
-        </div>
-      )}
-
-      <div style={card}>
-
-        <h2 style={{ color: "#fff" }}>Login</h2>
-
-        {/* EMAIL */}
-        <input
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          style={input}
-        />
-
-        {/* PASSWORD */}
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          style={input}
-        />
-
-        {/* OTP */}
-        <div style={otpContainer}>
-          {otp.map((digit, index) => (
-            <input
-              key={index}
-              ref={(el) => (inputsRef.current[index] = el)}
-              value={digit}
-              onChange={(e) => handleOtpChange(e.target.value, index)}
-              maxLength="1"
-              style={otpBox}
-            />
-          ))}
-        </div>
-
-        {/* SEND OTP */}
-        <button style={outlineBtn} onClick={sendOtp} disabled={loading}>
-          {loading ? "Sending..." : "Send OTP"}
-        </button>
-
-        {/* LOGIN */}
-        <button style={btn} onClick={handleLogin} disabled={loading}>
-          {loading ? "Please wait..." : "Login"}
-        </button>
-
+    {/* TOAST */}
+    {toast && (
+      <div className="fixed top-5 right-5 bg-red-500 px-4 py-2 rounded shadow-lg z-50">
+        {toast}
       </div>
+    )}
+
+    <div className="w-full max-w-md bg-[#111] rounded-xl p-8 shadow-xl">
+
+      <h2 className="text-3xl font-bold text-center mb-2">
+        Login
+      </h2>
+
+      <p className="text-center text-gray-400 mb-6">
+        Welcome back to TechFix Pro
+      </p>
+
+      {/* EMAIL */}
+      <input
+        type="email"
+        placeholder="Email address"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        className="w-full mb-4 p-3 rounded-lg bg-[#1a1a1a] border border-gray-700 outline-none"
+      />
+
+      {/* PASSWORD */}
+      <input
+        type="password"
+        placeholder="Password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        className="w-full mb-4 p-3 rounded-lg bg-[#1a1a1a] border border-gray-700 outline-none"
+      />
+
+      {/* OTP BOXES */}
+      <div className="flex justify-between mb-4">
+        {otp.map((digit, index) => (
+          <input
+            key={index}
+            ref={(el) => (inputsRef.current[index] = el)}
+            value={digit}
+            onChange={(e) => handleOtpChange(e.target.value, index)}
+            maxLength="1"
+            className="w-10 h-12 text-center text-lg bg-black border border-gray-700 rounded"
+          />
+        ))}
+      </div>
+
+      {/* SEND OTP */}
+      <button
+        onClick={sendOtp}
+        className="w-full border border-orange-500 text-orange-500 py-3 rounded-lg mb-3 hover:bg-orange-500 hover:text-white transition"
+      >
+        Send OTP
+      </button>
+
+      {/* LOGIN */}
+      <button
+        onClick={handleLogin}
+        className="w-full bg-orange-500 py-3 rounded-lg font-semibold hover:bg-orange-600 transition"
+      >
+        Login
+      </button>
+
+      <p className="text-center text-gray-400 mt-5">
+        Don’t have an account? <span className="text-orange-500 cursor-pointer">Sign up</span>
+      </p>
+
     </div>
-  );
+  </div>
+);
 }
 
 // ================= STYLES =================
