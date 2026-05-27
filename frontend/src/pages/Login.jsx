@@ -1,57 +1,52 @@
-import { useState, useRef } from "react";
-import api from "../api/axios";
+import { useState, useRef } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import api from '../api/axios';
+import toast from 'react-hot-toast';
 
 export default function Login() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [otp, setOtp] = useState(new Array(6).fill(""));
-  const [toast, setToast] = useState("");
+  const navigate = useNavigate();
+
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [otp, setOtp] = useState(new Array(6).fill(''));
 
   const inputsRef = useRef([]);
 
-  // ================= TOAST =================
-  const showToast = (msg) => {
-    setToast(msg);
-    setTimeout(() => setToast(""), 3000);
-  };
-
   // ================= SEND OTP =================
-  const sendOtp = async () => {
-    if (!email) return showToast("Enter email first");
-
+  const handleSendOTP = async () => {
     try {
-      const res = await api.post("/auth/send-otp", { email });
-      showToast(res.data.message || "OTP sent");
+      await api.post('/auth/send-otp', { email });
+      toast.success("OTP sent to your email");
     } catch (err) {
-      console.error(err);
-      showToast("Failed to send OTP");
+      toast.error("Failed to send OTP");
     }
   };
 
   // ================= LOGIN =================
-  const handleLogin = async () => {
-    const finalOtp = otp.join("");
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    const otpCode = otp.join('');
 
     try {
-      const res = await api.post("/auth/login", {
+      const res = await api.post('/auth/login', {
         email,
         password,
-        otp: finalOtp
+        otp: otpCode
       });
 
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("user", JSON.stringify(res.data.user));
 
-      window.location.href = "/dashboard";
+      toast.success("Login successful");
+      navigate('/dashboard');
 
     } catch (err) {
-      console.error(err);
-      showToast("Login failed");
+      toast.error("Login failed");
     }
   };
 
   // ================= OTP INPUT =================
-  const handleOtpChange = (value, index) => {
+  const handleOTPChange = (value, index) => {
     if (!/^[0-9]?$/.test(value)) return;
 
     const newOtp = [...otp];
@@ -61,112 +56,91 @@ export default function Login() {
     if (value && index < 5) {
       inputsRef.current[index + 1].focus();
     }
-
-    if (!value && index > 0) {
-      inputsRef.current[index - 1].focus();
-    }
   };
 
   return (
-    <div className="min-h-screen bg-black flex flex-col items-center justify-center text-white">
+    <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-4 py-16">
+      <div className="w-full max-w-md fade-up">
 
-      {/* TOAST */}
-      {toast && (
-        <div className="fixed top-5 right-5 bg-red-500 px-4 py-2 rounded shadow-lg z-50 animate-fadeIn">
-          {toast}
+        {/* HEADER */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-white mb-2">Login</h1>
+          <p className="text-white/50">Welcome back to TechFix Pro</p>
         </div>
-      )}
 
-      {/* HEADER */}
-      <div className="text-center mb-8 animate-fadeIn">
-        <h1 className="text-4xl font-bold mb-2 tracking-wide">
-          Login
-        </h1>
-        <p className="text-gray-400">
-          Welcome back to TechFix Pro
-        </p>
-      </div>
+        {/* CARD */}
+        <form onSubmit={handleLogin} className="card p-8 space-y-5 animate-card">
 
-      {/* CARD */}
-      <div className="w-full max-w-md p-8 rounded-2xl 
-bg-[#0f0f0f]/80 backdrop-blur-xl
-border border-gray-800 
-shadow-[0_0_40px_rgba(255,255,255,0.03)]
-animate-card">
-        {/* EMAIL */}
-        <input
-          type="email"
-          placeholder="Email address"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-         className="w-full mb-5 p-4 rounded-xl 
-bg-[#141414] 
-border border-gray-700 
-focus:border-orange-500 
-focus:ring-1 focus:ring-orange-500 
-outline-none transition duration-300"
-        />
-
-        {/* PASSWORD */}
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="w-full mb-5 p-4 rounded-xl 
-bg-[#141414] 
-border border-gray-700 
-focus:border-orange-500 
-focus:ring-1 focus:ring-orange-500 
-outline-none transition duration-300"
-        />
-
-        {/* OTP */}
-        <div className="flex justify-between mb-5">
-          {otp.map((digit, index) => (
+          {/* EMAIL */}
+          <div>
+            <label className="label">Email address</label>
             <input
-              key={index}
-              ref={(el) => (inputsRef.current[index] = el)}
-              value={digit}
-              onChange={(e) => handleOtpChange(e.target.value, index)}
-              maxLength="1"
-             className="w-12 h-14 text-center text-lg 
-bg-[#141414] 
-border border-gray-700 
-rounded-xl 
-focus:border-orange-500 
-focus:ring-1 focus:ring-orange-500 
-outline-none transition"
+              type="email"
+              className="input"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
             />
-          ))}
-        </div>
+          </div>
 
-        {/* SEND OTP */}
-        <button
-          onClick={sendOtp}
-          className="w-full border border-orange-500 text-orange-500 py-3 rounded-xl mb-3 hover:bg-orange-500 hover:text-white transition duration-300"
-        >
-          Send OTP
-        </button>
+          {/* PASSWORD */}
+          <div>
+            <label className="label">Password</label>
+            <input
+              type="password"
+              className="input"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
 
-        {/* LOGIN */}
-        <button
-          onClick={handleLogin}
-          className="w-full bg-gradient-to-r from-orange-500 to-orange-600 
-py-3 rounded-xl font-semibold 
-hover:scale-[1.02] hover:shadow-lg 
-transition duration-300"
-        >
-          Login
-        </button>
+          {/* OTP */}
+          <div>
+            <label className="label">OTP</label>
+            <div className="flex justify-between gap-2">
+              {otp.map((digit, index) => (
+                <input
+                  key={index}
+                  ref={(el) => (inputsRef.current[index] = el)}
+                  type="text"
+                  maxLength="1"
+                  value={digit}
+                  onChange={(e) => handleOTPChange(e.target.value, index)}
+                  className="w-12 h-14 text-center text-lg input"
+                />
+              ))}
+            </div>
+          </div>
 
-        <p className="text-center text-gray-400 mt-5">
-          Don’t have an account?{" "}
-          <span className="text-orange-500 cursor-pointer">
-            Sign up
-          </span>
-        </p>
+          {/* SEND OTP */}
+          <button
+            type="button"
+            onClick={handleSendOTP}
+            className="btn-secondary w-full py-3"
+          >
+            Send OTP
+          </button>
 
+          {/* LOGIN */}
+          <button
+            type="submit"
+            className="btn-primary w-full py-3.5"
+          >
+            Login
+          </button>
+
+          {/* FOOTER */}
+          <p className="text-center text-white/50 text-sm">
+            Don’t have an account?{' '}
+            <Link to="/register" className="text-brand-500 hover:text-brand-400 font-medium">
+              Sign up
+            </Link>
+          </p>
+
+        </form>
       </div>
     </div>
   );
