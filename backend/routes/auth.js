@@ -69,9 +69,11 @@ router.post('/send-otp', async (req, res) => {
       expires: Date.now() + 5 * 60 * 1000 // 5 mins
     };
 
-    await sendOTPEmail(email, otp);
+    sendOTPEmail(email, otp)
+  .then(() => console.log("📩 OTP sent"))
+  .catch(err => console.error("❌ Email error:", err.message));
 
-    res.json({ message: "OTP sent successfully" });
+res.json({ message: "OTP sent successfully" });
 
   } catch (err) {
     console.error("❌ SEND OTP ERROR:", err);

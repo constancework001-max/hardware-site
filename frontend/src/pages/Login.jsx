@@ -14,55 +14,61 @@ export default function Login() {
   const inputsRef = useRef([]);
 
   // ================= SEND OTP =================
-  const handleSendOTP = async () => {
-    if (!email) {
-      toast.error("Enter email first");
-      return;
-    }
+ const handleSendOTP = async () => {
+  if (!email) {
+    toast.error("Enter email first");
+    return;
+  }
 
-    try {
-      setLoading(true);
-      await api.post('/auth/send-otp', { email });
-      toast.success("OTP sent to your email 📩");
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to send OTP");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const toastId = toast.loading("Sending OTP... ⏳");
+
+  try {
+    await api.post('/auth/send-otp', { email });
+
+    toast.success("OTP sent to your email 📩", {
+      id: toastId
+    });
+
+  } catch (err) {
+    toast.error(err.response?.data?.message || "Failed to send OTP", {
+      id: toastId
+    });
+  }
+};
 
   // ================= LOGIN =================
-  const handleLogin = async (e) => {
-    e.preventDefault();
+ const handleLogin = async (e) => {
+  e.preventDefault();
 
-    const otpCode = otp.join('');
+  const otpCode = otp.join('');
 
-    if (otpCode.length !== 6) {
-      toast.error("Enter complete OTP");
-      return;
-    }
+  if (otpCode.length !== 6) {
+    toast.error("Enter complete OTP");
+    return;
+  }
 
-    try {
-      setLoading(true);
+  const toastId = toast.loading("Logging in... 🔐");
 
-      const res = await api.post('/auth/login', {
-        email,
-        password,
-        otp: otpCode
-      });
+  try {
+    const res = await api.post('/auth/login', {
+      email,
+      password,
+      otp: otpCode
+    });
 
-      localStorage.setItem("token", res.data.token);
-      localStorage.setItem("user", JSON.stringify(res.data.user));
+    localStorage.setItem("token", res.data.token);
+    localStorage.setItem("user", JSON.stringify(res.data.user));
 
-      toast.success("Login successful 🎉");
-      navigate('/dashboard');
+    toast.success("Login successful 🎉", { id: toastId });
 
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Login failed");
-    } finally {
-      setLoading(false);
-    }
-  };
+    navigate('/dashboard');
+
+  } catch (err) {
+    toast.error(err.response?.data?.message || "Login failed", {
+      id: toastId
+    });
+  }
+};
 
   // ================= OTP INPUT =================
   const handleOTPChange = (value, index) => {
