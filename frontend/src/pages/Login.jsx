@@ -70,24 +70,25 @@ export default function Login() {
   };
 
  return (
-  <div className="min-h-screen flex items-center justify-center bg-black text-white">
+  <div className="min-h-screen bg-black flex flex-col items-center justify-center text-white">
 
     {/* TOAST */}
     {toast && (
-      <div className="fixed top-5 right-5 bg-red-500 px-4 py-2 rounded shadow-lg z-50">
+      <div className="fixed top-5 right-5 bg-red-500 px-4 py-2 rounded shadow-lg z-50 animate-fadeIn">
         {toast}
       </div>
     )}
 
-    <div className="w-full max-w-md bg-[#111] rounded-xl p-8 shadow-xl">
-
-      <h2 className="text-3xl font-bold text-center mb-2">
-        Login
-      </h2>
-
-      <p className="text-center text-gray-400 mb-6">
+    {/* HEADER (OUTSIDE BOX) */}
+    <div className="text-center mb-8 animate-fadeIn">
+      <h1 className="text-4xl font-bold mb-2">Login</h1>
+      <p className="text-gray-400">
         Welcome back to TechFix Pro
       </p>
+    </div>
+
+    {/* CARD */}
+    <div className="w-full max-w-md bg-[#111] p-8 rounded-xl shadow-xl animate-card">
 
       {/* EMAIL */}
       <input
@@ -107,7 +108,7 @@ export default function Login() {
         className="w-full mb-4 p-3 rounded-lg bg-[#1a1a1a] border border-gray-700 outline-none"
       />
 
-      {/* OTP BOXES */}
+      {/* OTP */}
       <div className="flex justify-between mb-4">
         {otp.map((digit, index) => (
           <input
@@ -138,7 +139,8 @@ export default function Login() {
       </button>
 
       <p className="text-center text-gray-400 mt-5">
-        Don’t have an account? <span className="text-orange-500 cursor-pointer">Sign up</span>
+        Don’t have an account?{" "}
+        <span className="text-orange-500 cursor-pointer">Sign up</span>
       </p>
 
     </div>
