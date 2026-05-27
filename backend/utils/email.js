@@ -1,39 +1,28 @@
-const nodemailer = require('nodemailer');
+const nodemailer = require("nodemailer");
 
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  service: "gmail",
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS
   }
 });
 
-// ✅ OTP EMAIL
+// ================= SEND OTP EMAIL =================
 const sendOTPEmail = async (to, otp) => {
-  return transporter.sendMail({
-    from: `"TechFixPro" <${process.env.EMAIL_USER}>`,
+  await transporter.sendMail({
+    from: `"TechFix Pro" <${process.env.EMAIL_USER}>`,
     to,
-    subject: "Your OTP Code",
+    subject: "Your OTP Code - TechFix Pro",
     html: `
-      <h2>Your OTP Code</h2>
-      <p>Your OTP is: <b>${otp}</b></p>
-      <p>This expires in 5 minutes.</p>
+      <div style="font-family: Arial; text-align:center;">
+        <h2>TechFix Pro Login OTP</h2>
+        <p>Your OTP code is:</p>
+        <h1 style="color:#f97316;">${otp}</h1>
+        <p>This OTP is valid for 5 minutes.</p>
+      </div>
     `
   });
 };
 
-// ✅ LOGIN SUCCESS EMAIL
-const sendLoginEmail = async (to, name) => {
-  return transporter.sendMail({
-    from: `"TechFixPro" <${process.env.EMAIL_USER}>`,
-    to,
-    subject: "Welcome to TechFixPro 🚀",
-    html: `
-      <h2>Hello ${name},</h2>
-      <p>You have successfully logged in.</p>
-      <p>Enjoy our services!</p>
-    `
-  });
-};
-
-module.exports = { sendOTPEmail, sendLoginEmail };
+module.exports = { sendOTPEmail };
