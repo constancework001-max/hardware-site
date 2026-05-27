@@ -56,65 +56,13 @@ router.post('/register', async (req, res) => {
 });
 
 
-// ================= LOGIN =================
-router.post('/login', async (req, res) => {
-  const { email, password } = req.body;
-
-  if (!email || !password) {
-    return res.status(400).json({
-      message: 'Email and password are required.'
-    });
-  }
-
-  try {
-    const result = await pool.query(
-      'SELECT * FROM users WHERE email = $1',
-      [email]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(401).json({
-        message: 'Invalid credentials.'
-      });
-    }
-
-    const user = result.rows[0];
-
-    const isMatch = await bcrypt.compare(password, user.password);
-
-    if (!isMatch) {
-      return res.status(401).json({
-        message: 'Invalid credentials.'
-      });
-    }
-
-    const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' }
-    );
-
-    const { password: _, ...safeUser } = user;
-
-    console.log("✅ User logged in:", user.email);
-
-    // ✅ EMAIL AFTER LOGIN
-    sendLoginEmail(user.email, user.name)
-      .then(() => console.log("📩 Login email sent"))
-      .catch(err => console.error("❌ Email failed:", err.message));
-
-    res.json({ token, user: safeUser });
-
-  } catch (err) {
-    console.error("❌ Login error:", err.message);
-    res.status(500).json({ message: 'Server error.' });
-  }
-});
-
-
 // ================= SEND OTP =================
 router.post('/send-otp', async (req, res) => {
   const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ message: "Email required" });
+  }
 
   try {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -127,7 +75,7 @@ router.post('/send-otp', async (req, res) => {
 
     await sendOTPEmail(email, otp);
 
-    console.log("📩 OTP sent:", email, otp);
+    console.log("📩 OTP sent:", email);
 
     res.json({ message: "OTP sent" });
 
@@ -138,62 +86,82 @@ router.post('/send-otp', async (req, res) => {
 });
 
 
-// ================= VERIFY OTP =================
-router.post('/verify-otp', async (req, res) => {
-  const { email, otp } = req.body;
+// ================= LOGIN (PASSWORD + OTP) =================
+router.post('/login', async (req, res) => {
+  const { email, password, otp } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ message: 'Email is required.' });
+  }
 
   try {
     const result = await pool.query(
-      'SELECT * FROM otps WHERE email=$1 AND otp=$2 ORDER BY id DESC LIMIT 1',
-      [email, otp]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(400).json({ message: "Invalid OTP" });
-    }
-
-    const record = result.rows[0];
-
-    if (new Date() > new Date(record.expires_at)) {
-      return res.status(400).json({ message: "OTP expired" });
-    }
-
-    // ✅ Check user
-    let userRes = await pool.query(
-      'SELECT * FROM users WHERE email=$1',
+      'SELECT * FROM users WHERE email = $1',
       [email]
     );
 
-    let user;
-
-    if (userRes.rows.length === 0) {
-      const newUser = await pool.query(
-        'INSERT INTO users (email, name) VALUES ($1,$2) RETURNING *',
-        [email, "User"]
-      );
-      user = newUser.rows[0];
-    } else {
-      user = userRes.rows[0];
+    if (result.rows.length === 0) {
+      return res.status(401).json({
+        message: 'User not found.'
+      });
     }
 
+    const user = result.rows[0];
+
+    // ================= PASSWORD CHECK =================
+    if (password) {
+      const isMatch = await bcrypt.compare(password, user.password);
+
+      if (!isMatch) {
+        return res.status(401).json({
+          message: 'Invalid password.'
+        });
+      }
+    }
+
+    // ================= OTP CHECK =================
+    if (otp) {
+      const otpResult = await pool.query(
+        'SELECT * FROM otps WHERE email=$1 AND otp=$2 ORDER BY id DESC LIMIT 1',
+        [email, otp]
+      );
+
+      if (otpResult.rows.length === 0) {
+        return res.status(401).json({
+          message: 'Invalid OTP'
+        });
+      }
+
+      const record = otpResult.rows[0];
+
+      if (new Date() > new Date(record.expires_at)) {
+        return res.status(401).json({
+          message: 'OTP expired'
+        });
+      }
+    }
+
+    // ================= TOKEN =================
     const token = jwt.sign(
-      { id: user.id, email: user.email },
+      { id: user.id, email: user.email, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
 
-    console.log("✅ OTP login success:", email);
+    const { password: _, ...safeUser } = user;
 
-    // ✅ SEND WELCOME EMAIL
+    console.log("✅ Login success:", user.email);
+
+    // ================= EMAIL (SAFE) =================
     sendLoginEmail(user.email, user.name)
-      .then(() => console.log("📩 Welcome email sent"))
+      .then(() => console.log("📩 Email sent"))
       .catch(err => console.error("❌ Email failed:", err.message));
 
-    res.json({ token, user });
+    res.json({ token, user: safeUser });
 
   } catch (err) {
-    console.error("❌ OTP verify error:", err.message);
-    res.status(500).json({ message: "OTP verification failed" });
+    console.error("❌ Login error:", err.message);
+    res.status(500).json({ message: 'Server error.' });
   }
 });
 

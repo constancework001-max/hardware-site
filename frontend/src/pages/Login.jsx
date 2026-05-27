@@ -1,47 +1,46 @@
 import { useState, useRef } from "react";
 import api from "../api/axios";
-console.log("OTP VERSION 2");
+
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
-  const [showOTP, setShowOTP] = useState(false);
   const [otp, setOtp] = useState(new Array(6).fill(""));
+  const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState("");
 
   const inputsRef = useRef([]);
 
-  // ================= NORMAL LOGIN =================
-  const handleLogin = async () => {
-    try {
-      const res = await api.post("/auth/login", { email, password });
-
-      localStorage.setItem("token", res.data.token);
-      localStorage.setItem("user", JSON.stringify(res.data.user));
-
-      window.location.href = "/dashboard";
-    } catch (err) {
-      alert("Login failed");
-    }
+  // ================= TOAST =================
+  const showToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(""), 3000);
   };
 
   // ================= SEND OTP =================
   const sendOtp = async () => {
+    if (!email) return showToast("Enter email first");
+
     try {
+      setLoading(true);
       await api.post("/auth/send-otp", { email });
-      alert("OTP sent to your email");
-      setShowOTP(true);
+      showToast("OTP sent to email");
     } catch {
-      alert("Failed to send OTP");
+      showToast("Failed to send OTP");
+    } finally {
+      setLoading(false);
     }
   };
 
-  // ================= VERIFY OTP =================
-  const verifyOtp = async () => {
-    try {
-      const finalOtp = otp.join("");
+  // ================= LOGIN =================
+  const handleLogin = async () => {
+    const finalOtp = otp.join("");
 
-      const res = await api.post("/auth/verify-otp", {
+    try {
+      setLoading(true);
+
+      const res = await api.post("/auth/login", {
         email,
+        password,
         otp: finalOtp
       });
 
@@ -49,8 +48,11 @@ export default function Login() {
       localStorage.setItem("user", JSON.stringify(res.data.user));
 
       window.location.href = "/dashboard";
+
     } catch {
-      alert("Invalid OTP");
+      showToast("Login failed");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -67,7 +69,85 @@ export default function Login() {
     }
   };
 
-  const inputStyle = {
+  return (
+    <div style={container}>
+
+      {/* TOAST */}
+      {toast && (
+        <div style={toastStyle}>
+          {toast}
+        </div>
+      )}
+
+      <div style={card}>
+
+        <h2 style={{ color: "#fff" }}>Login</h2>
+
+        {/* EMAIL */}
+        <input
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          style={input}
+        />
+
+        {/* PASSWORD */}
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          style={input}
+        />
+
+        {/* OTP */}
+        <div style={otpContainer}>
+          {otp.map((digit, index) => (
+            <input
+              key={index}
+              ref={(el) => (inputsRef.current[index] = el)}
+              value={digit}
+              onChange={(e) => handleOtpChange(e.target.value, index)}
+              maxLength="1"
+              style={otpBox}
+            />
+          ))}
+        </div>
+
+        {/* SEND OTP */}
+        <button style={outlineBtn} onClick={sendOtp} disabled={loading}>
+          {loading ? "Sending..." : "Send OTP"}
+        </button>
+
+        {/* LOGIN */}
+        <button style={btn} onClick={handleLogin} disabled={loading}>
+          {loading ? "Please wait..." : "Login"}
+        </button>
+
+      </div>
+    </div>
+  );
+}
+
+// ================= STYLES =================
+const container = {
+  minHeight: "100vh",
+  backgroundColor: "#0b0b0b",
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center"
+};
+
+const card = {
+  backgroundColor: "#111",
+  padding: "40px",
+  borderRadius: "12px",
+  width: "350px",
+  textAlign: "center",
+  boxShadow: "0 0 20px rgba(0,0,0,0.5)"
+};
+
+const input = {
   width: "100%",
   padding: "10px",
   marginBottom: "15px",
@@ -77,7 +157,24 @@ export default function Login() {
   color: "#fff"
 };
 
-const btnStyle = {
+const otpContainer = {
+  display: "flex",
+  justifyContent: "space-between",
+  marginBottom: "15px"
+};
+
+const otpBox = {
+  width: "40px",
+  height: "45px",
+  textAlign: "center",
+  fontSize: "18px",
+  borderRadius: "6px",
+  border: "1px solid #333",
+  backgroundColor: "#000",
+  color: "#fff"
+};
+
+const btn = {
   width: "100%",
   padding: "10px",
   backgroundColor: "#ff6a00",
@@ -91,6 +188,7 @@ const btnStyle = {
 const outlineBtn = {
   width: "100%",
   padding: "10px",
+  marginBottom: "10px",
   backgroundColor: "transparent",
   border: "1px solid #ff6a00",
   borderRadius: "6px",
@@ -98,96 +196,13 @@ const outlineBtn = {
   cursor: "pointer"
 };
 
-  // ================= UI =================
- return (
-  <div style={{
-    minHeight: "100vh",
-    backgroundColor: "#0b0b0b",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center"
-  }}>
-
-    <div style={{
-      backgroundColor: "#111",
-      padding: "40px",
-      borderRadius: "12px",
-      width: "350px",
-      textAlign: "center",
-      boxShadow: "0 0 20px rgba(0,0,0,0.5)"
-    }}>
-
-      <h2 style={{ color: "#fff", marginBottom: "20px" }}>
-        Login
-      </h2>
-
-      <input
-        placeholder="Email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        style={inputStyle}
-      />
-
-      {!showOTP && (
-        <>
-          <input
-            placeholder="Password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            style={inputStyle}
-          />
-
-          <button style={btnStyle} onClick={handleLogin}>
-            Login
-          </button>
-
-          <p style={{ color: "#aaa", margin: "10px 0" }}>
-            OR
-          </p>
-
-          <button style={outlineBtn} onClick={sendOtp}>
-            Login with OTP
-          </button>
-        </>
-      )}
-
-      {showOTP && (
-        <>
-          <p style={{ color: "#aaa" }}>Enter OTP</p>
-
-          <div style={{
-            display: "flex",
-            justifyContent: "space-between",
-            marginBottom: "15px"
-          }}>
-            {otp.map((digit, index) => (
-              <input
-                key={index}
-                ref={(el) => (inputsRef.current[index] = el)}
-                value={digit}
-                onChange={(e) => handleOtpChange(e.target.value, index)}
-                maxLength="1"
-                style={{
-                  width: "40px",
-                  height: "45px",
-                  textAlign: "center",
-                  fontSize: "18px",
-                  borderRadius: "6px",
-                  border: "1px solid #333",
-                  backgroundColor: "#000",
-                  color: "#fff"
-                }}
-              />
-            ))}
-          </div>
-
-          <button style={btnStyle} onClick={verifyOtp}>
-            Verify OTP
-          </button>
-        </>
-      )}
-    </div>
-  </div>
-);
-}
+const toastStyle = {
+  position: "absolute",
+  top: "20px",
+  right: "20px",
+  backgroundColor: "#ff4d4d",
+  color: "#fff",
+  padding: "10px 15px",
+  borderRadius: "6px",
+  boxShadow: "0 0 10px rgba(0,0,0,0.3)"
+};
